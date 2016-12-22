@@ -80,14 +80,12 @@ def minibatch(input, num_kernels=5, kernel_dim=3):
     x = linear(input, num_kernels * kernel_dim, scope='minibatch', stddev=0.02)
     activation = tf.reshape(x, (-1, num_kernels, kernel_dim))
     diffs = tf.expand_dims(activation, 3) - tf.expand_dims(tf.transpose(activation, [1, 2, 0]), 0)
-    eps = tf.expand_dims(np.eye(int(input.get_shape()[0]), dtype=np.float32), 1)
-    abs_diffs = tf.reduce_sum(tf.abs(diffs), 2) + eps
+    abs_diffs = tf.reduce_sum(tf.abs(diffs), 2)
     minibatch_features = tf.reduce_sum(tf.exp(-abs_diffs), 2)
     return tf.concat(1, [input, minibatch_features])
 
 
-def optimizer(loss, var_list):
-    initial_learning_rate = 0.005
+def optimizer(loss, var_list, initial_learning_rate):
     decay = 0.95
     num_decay_steps = 150
     batch = tf.Variable(0)
@@ -117,6 +115,13 @@ class GAN(object):
         self.mlp_hidden_size = 4
         self.anim_path = anim_path
         self.anim_frames = []
+
+        # can use a higher learning rate when not using the minibatch layer
+        if self.minibatch:
+            self.learning_rate = 0.005
+        else:
+            self.learning_rate = 0.03
+
         self._create_model()
 
     def _create_model(self):
@@ -129,7 +134,7 @@ class GAN(object):
             self.pre_labels = tf.placeholder(tf.float32, shape=(self.batch_size, 1))
             D_pre = discriminator(self.pre_input, self.mlp_hidden_size, self.minibatch)
             self.pre_loss = tf.reduce_mean(tf.square(D_pre - self.pre_labels))
-            self.pre_opt = optimizer(self.pre_loss, None)
+            self.pre_opt = optimizer(self.pre_loss, None, self.learning_rate)
 
         # This defines the generator network - it takes samples from a noise
         # distribution as input, and passes them through an MLP.
@@ -158,12 +163,12 @@ class GAN(object):
         self.d_params = [v for v in vars if v.name.startswith('D/')]
         self.g_params = [v for v in vars if v.name.startswith('G/')]
 
-        self.opt_d = optimizer(self.loss_d, self.d_params)
-        self.opt_g = optimizer(self.loss_g, self.g_params)
+        self.opt_d = optimizer(self.loss_d, self.d_params, self.learning_rate)
+        self.opt_g = optimizer(self.loss_g, self.g_params, self.learning_rate)
 
     def train(self):
         with tf.Session() as session:
-            tf.initialize_all_variables().run()
+            tf.global_variables_initializer().run()
 
             # pretraining discriminator
             num_pretrain_steps = 1000

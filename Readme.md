@@ -11,7 +11,7 @@ For the Python dependencies, first install the requirements file:
 
     $ pip install -r requirements.txt
 
-You should then install TensorFlow (we used 0.8 here), see: [https://www.tensorflow.org/versions/r0.8/get_started/os_setup.html#pip-installation](https://www.tensorflow.org/versions/r0.8/get_started/os_setup.html#pip-installation).
+You should then install TensorFlow `0.12`, see: [https://www.tensorflow.org/get_started/os_setup#pip_installation](https://www.tensorflow.org/get_started/os_setup#pip_installation).
 
 If you want to also generate the animations, you need to also make sure that `ffmpeg` is installed and on your path.
 
